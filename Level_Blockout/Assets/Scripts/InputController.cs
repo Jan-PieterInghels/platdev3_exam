@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// This script receives & updates inputs
 public class InputController : MonoBehaviour
 {
-	//joysticks
+	// Joysticks
 	public float RightJoyStickHorizontal;
 	public float LeftJoyStickVertical;
 	public float LeftJoyStickHorizontal;
 	
 	// Update is called once per frame
-	void Update () {
+	private void Update () {
 		UpdateInputs();
 	}
 
+	//Update all used controls
 	public void UpdateInputs()
 	{
 		RightJoyStickHorizontal = Input.GetAxis("Right JoyStick Horizontal");

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ContentModelStore">
-    <e p="C:\Users\Jan-Pieter Inghels\.Rider2018.2\system\extResources" t="IncludeRecursive" />
-    <e p="C:\Users\Jan-Pieter Inghels\.Rider2018.2\system\resharper-host\Local\Transient\ReSharperHost\v182\SolutionCaches\_Level_Blockout.1096859120.00" t="ExcludeRecursive" />
-    <e p="D:\Dropbox\Dropbox\HoWest\2)YEAR_2\Semester 1\Platform Development 3\EXAM\Level_Blockout" t="IncludeRecursive">
+    <e p="C:\Users\jp\.Rider2018.2\system\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\jp\.Rider2018.2\system\resharper-host\Local\Transient\ReSharperHost\v182\SolutionCaches\_Level_Blockout.-1615545072.00" t="ExcludeRecursive" />
+    <e p="C:\Users\jp\Dropbox\HoWest\2)YEAR_2\Semester 1\Platform Development 3\EXAM\PD3_Exam_Repository\platdev3_exam\Level_Blockout" t="IncludeRecursive">
       <e p="Assembly-CSharp-Editor.csproj" t="IncludeRecursive" />
       <e p="Assembly-CSharp.csproj" t="IncludeRecursive" />
       <e p="Assets" t="Include">
@@ -164,8 +164,8 @@
         <e p="Scripts" t="Include">
           <e p="CameraBehaviour.cs" t="Include" />
           <e p="CharacterBehaviour.cs" t="Include" />
+          <e p="GroundBehaviour.cs" t="Include" />
           <e p="InputController.cs" t="Include" />
-          <e p="InputMapper.cs" t="Include" />
         </e>
       </e>
       <e p="Level_Blockout.sln" t="IncludeFlat" />

@@ -2,24 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-//This script rotates the camera on a horizontal axis around the character
-
+// This script rotates the camera on a horizontal axis around the character
 public class CameraBehaviour : MonoBehaviour
 {
-	//InputController
+	// InputController
 	private GameObject _inputControllerGameObject;
-	private InputController _inputControllerScript;
+	[SerializeField] private InputController _inputControllerScript;
 	
-	//controls used in this script
+	// Controls used in this script
 	private float _inputRotateCameraHorizontal;
 	
-	//manipulated transforms
-	public Transform CharacterTransform;
-	public Transform CameraTransform;
+	// Manipulated transforms
+	private GameObject _characterGameObject;
+	[SerializeField] private Transform _characterTransform;
+	[SerializeField] private Transform _mainCameraTransform;
 
 	private void Awake()
 	{
-		//initialize InputController
+		// Initialize _inputController
 		_inputControllerGameObject = GameObject.FindWithTag("InputController");
 		if (_inputControllerGameObject != null)
 		{
@@ -27,32 +27,44 @@ public class CameraBehaviour : MonoBehaviour
 		}
 		else
 		{
-			Debug.LogError("InputControllerGameObject could not be found by CameraBehaviour");
+			Debug.LogError("_inputControllerGameObject could not be found by CameraBehaviour");
 		}
-	}
-
-	// Use this for initialization
-	void Start ()
-	{
 		
-
-		//initialize manipulated transforms
+		// Initialize _characterTransform
+		_characterGameObject = GameObject.FindWithTag("Player");
+		if (_characterGameObject != null)
+		{
+			_characterTransform = _characterGameObject.transform;
+		}
+		else
+		{
+			Debug.LogError("_characterGameObject could not be found by CameraBehaviour");
+		}
+		
+		// Initialize _cameraTransform
+		_mainCameraTransform = this.gameObject.transform;
+		if (_mainCameraTransform == null)
+		{
+			Debug.LogError("_mainCameraTransform could not be found by CameraBehaviour");
+		}
 	}
 	
 	// Update is called once per frame
-	void Update ()
+	private void Update ()
 	{
 		MapInputs();
 		RotateCamera();
 	}
 
-	void MapInputs()
+	// Map inputs used in this script
+	private void MapInputs()
 	{
 		_inputRotateCameraHorizontal = _inputControllerScript.RightJoyStickHorizontal;
 	}
 
-	void RotateCamera()
+	// Rotate camera horizontally
+	private void RotateCamera()
 	{
-		CameraTransform.RotateAround(CharacterTransform.position, Vector3.up, _inputRotateCameraHorizontal);
+		_mainCameraTransform.RotateAround(_characterTransform.position, Vector3.up, _inputRotateCameraHorizontal);
 	}
 }

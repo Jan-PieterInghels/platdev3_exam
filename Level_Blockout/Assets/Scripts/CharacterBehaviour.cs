@@ -3,44 +3,43 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-//TO DO:
-//- implement friction
-//- fix strafe bug
-	
-//equations of motion		u = initial velocity		v = final velocity		a = acceleration		t = time		s = distance
+// This script moves the character based on which direction the camera is facing
+
+// Equations of motion		u = initial velocity		v = final velocity		a = acceleration		t = time		s = distance
 	
 // v = u + at
-// s = ut + 1/2 at^2
-//2as = v^2 - u^2
-	
-// final velocity = initial velocity * time
-// distance = (initial velocity * time) + (1/2 * acceleration * (time^2)
-// (2 * acceleration * time) = (velocity ^ 2) - (initial velocity^2)
+// Final velocity = initial velocity * acceleration * time
 
 public class CharacterBehaviour : MonoBehaviour
 {
-	//InputController
+	// InputController
 	private GameObject _inputControllerGameObject;
 	[SerializeField] private InputController _inputControllerScript;
 	
-	//controls used in this script
+	// Surface character is walking on
+	private GameObject _groundGameObject;
+	[SerializeField] private GroundBehaviour _groundBehaviourScript;
+	
+	// Controls used in this script
 	private float _inputMoveCharacterZAxis;
 	private float _inputMoveCharacterXAxis;
 	
-	//locomotion parameters
-	[SerializeField] private float _acceleration = 50;
-	[SerializeField] private float _deceleration = 10f;
+	// Locomotion parameters
+	[SerializeField] private float _acceleration = 20; // Acceleration measured in meters/second² [m/s²]
+	[SerializeField] private float _mass = 75; // Mass measured in kilograms [kg]
+	[SerializeField] private float _maximumSpeed = 5; // Speed measured in meters/second [m/s]
 	[SerializeField] private Vector3 _velocity;
-	[SerializeField] private float _maximumSpeed = 5;
-	[SerializeField] private Vector3 _frictionForce;
 	
-	//manipulated transforms
+	// CharacterController
 	private CharacterController _characterController;
-	[SerializeField] private Transform _mainCameraTransform;
-
+	
+	// Manipulated transforms
+	private GameObject _mainCameraGameObject;
+	[SerializeField]private Transform _mainCameraTransform;
+	
 	private void Awake()
 	{
-		//initialize inputController
+		// Initialize _inputControllerGameObject & _inputControllerScript
 		_inputControllerGameObject = GameObject.FindWithTag("InputController");
 		if (_inputControllerGameObject != null)
 		{
@@ -48,15 +47,33 @@ public class CharacterBehaviour : MonoBehaviour
 		}
 		else
 		{
-			Debug.LogError("InputControllerGameObject could not be found by CharacterBehaviour");
+			Debug.LogError("_inputControllerGameObject could not be found by CharacterBehaviour");
 		}
-	}
-
-	// Use this for initialization
-	private void Start ()
-	{
-		//initialize manipulated transforms
+		
+		// Initialize _groundGameObject & _groundBehaviourScript
+		_groundGameObject = GameObject.FindWithTag("Ground");
+		if (_groundGameObject != null)
+		{
+			_groundBehaviourScript = _groundGameObject.GetComponent<GroundBehaviour>();
+		}
+		else
+		{
+			Debug.LogError("_groundBehaviourGameObject could not be found by CharacterBehaviour");
+		}
+		
+		// Initialize charactercontroller
 		_characterController = this.gameObject.GetComponent<CharacterController>();
+		if (_characterController == null)
+		{
+			Debug.LogError("_characterController could not be found by CharacterBehaviour");
+		}
+		
+		// Initialize _mainCameraTransform
+		_mainCameraTransform = GameObject.FindWithTag("MainCamera").transform;
+		if (_mainCameraTransform == null)
+		{
+			Debug.LogError("_mainCameraTransform could not be found by CharacterBehaviour");
+		}
 	}
 	
 	// Update is called once per frame
@@ -69,21 +86,19 @@ public class CharacterBehaviour : MonoBehaviour
 	{
 		ApplyGround();
 		ApplyMovement();
-		ApplyFriction();
-		ClampVelocity();
-		
-		
-		
+		ApplyXZFriction();
+		ClampXZVelocity();
 		ApplyGravity();
 		PerformMovement();
 	}
-
+	// Map inputs used in this script
 	private void MapInputs()
 	{
 		_inputMoveCharacterZAxis = _inputControllerScript.LeftJoyStickVertical;
 		_inputMoveCharacterXAxis = _inputControllerScript.LeftJoyStickHorizontal;
 	}
 	
+	// Prevents gravity from applying acceleration when grounded
 	private void ApplyGround()
 	{
 		if (_characterController.isGrounded)
@@ -92,11 +107,11 @@ public class CharacterBehaviour : MonoBehaviour
 		}
 	}
 
+	// Changes the character velocity depending on the rotation of the camera
 	private void ApplyMovement()
 	{
 		//get input movement vector
 		Vector3 inputMovement = new Vector3(_inputMoveCharacterXAxis, 0, _inputMoveCharacterZAxis);
-		//Debug.Log("inputMovement = " + inputMovement);
 		
 		//make sure camera forward is player movement forward
 		Vector3 mainCameraForwardXz = Vector3.Scale(_mainCameraTransform.forward, new Vector3(1, 0, 1)); //multiplied by (1, 0, 1) to remove Y component
@@ -106,59 +121,48 @@ public class CharacterBehaviour : MonoBehaviour
 		Vector3 movementInCameraRightDirection = mainCameraRightXz * inputMovement.x;
 
 		Vector3 movementForward = movementInCameraForwardDirection + movementInCameraRightDirection;
-		//Debug.Log("movementForward = " + movementForward);
 		
 		// v = u + at
 		// endVelocity = startVelocity + acceleration * time
 		_velocity += movementForward * _acceleration * Time.fixedDeltaTime;
-		//Debug.Log("MOVEMENTFORWARD = " + movementForward);
-		//Debug.Log("VELOCITY = " + _velocity);
-		
-		//calculating the friction vector here because local variables are parameters
-		
-		
-		
-		
-		
-		
-		//CalculateFrictionVector(mainCameraForwardXz, mainCameraRightXz, inputMovement);
 	}
 
-	//calculate the friction vector, which is in the opposite direction of the velocity
-	private void CalculateFrictionVector(Vector3 mainCameraForwardXz, Vector3 mainCameraRightXz, Vector3 inputMovement)
+	// Calculate the friction force, based on the surface friction coefficient
+	private Vector3 GetFrictionForceVector(float surfaceFrictionCoefficient)
 	{
-		//calculate inverted input (IF input = 1 THEN invertedInput = 0)
-		//Vector3 invertedInputMovement = new Vector3((1 - inputMovement.x), 0, (1 - inputMovement.z));
-		//Debug.Log("invertedInputMovement = " + invertedInputMovement);
+		float frictionCoefficient = surfaceFrictionCoefficient;
 		
-		//calculate inverted forces
-		//Vector3 invertedMovementInCameraForwardDirection = mainCameraForwardXz * invertedInputMovement.z;
-		//Vector3 invertedMovementInCameraRightDirection = mainCameraRightXz * invertedInputMovement.x;
-		
-		
-		//Vector3 invertedMovementForward = invertedMovementInCameraForwardDirection + invertedMovementInCameraRightDirection;
-		//Debug.Log("invertedMovementForward = " + invertedMovementForward);
-		
-		//friction vector
-		//_frictionForce = invertedMovementForward * _acceleration * Time.fixedDeltaTime;
+		// Calculate kinetic friction force		https://www.softschools.com/formulas/physics/kinetic_friction_formula/92/
+		Vector3 gravitationForce = Physics.gravity * _mass; // Fg = m * g (gravitationforce = mass * gravity) [in Newton]
+		Vector3 normalForce = -gravitationForce; // η = - Fg (normalforce = - gravitationforce) [in Newton]
+		Vector3 kineticFrictionForce = normalForce * frictionCoefficient; // Fk = μk mg (kinetic friction force = coefficient of kinetic friction * normal force) [in Newton]
 
-		
-		//_frictionForce = new Vector3((int)-_velocity.x, 0, (int)-_velocity.z);
-		_frictionForce = -_velocity;
+		// Calculate (negative) acceleration due to friction force
+		float frictionForceMagnitude = kineticFrictionForce.magnitude; // Transform vector to float
+		float frictionForceAcceleration = frictionForceMagnitude / _mass; // a = f / m (acceleration = force / mass) [in m/s²]
 
-		//Debug.Log("INVERTED MOVEMENTFORWARD = " + invertedMovementForward);
-		//Debug.Log("FRICTIONFORCE = " + _frictionForce);
+		// Apply the friction force to the inverse direction of the current movement
+		Vector3 frictionForceDirection = -_velocity;
+		Vector3 frictionForce = frictionForceDirection * frictionForceAcceleration;
+
+		return frictionForce;
 	}
 
-	private void ApplyFriction()
+	// Apply friction to the X & Z axis
+	private void ApplyXZFriction()
 	{
+		float preservedYVelocity = _velocity.y;
+		
+		// Only apply friction when the character movement controllers are untouched
+		if (_inputMoveCharacterXAxis == 0 && _inputMoveCharacterZAxis == 0)
+		{
+			_velocity += GetFrictionForceVector(_groundBehaviourScript.SurfaceFrictionCoefficient) * Time.fixedDeltaTime;
+			_velocity.y = preservedYVelocity;
+		}
+		
 		//if input is close to 0
 
-		_frictionForce = -_velocity;
-
-		_velocity += _frictionForce * Time.deltaTime;
-
-		
+		/*
 		float smallestVelocityAllowed = 0.2f;		
 		if (_velocity.x < smallestVelocityAllowed && _velocity.x > -smallestVelocityAllowed)
 		{
@@ -169,52 +173,14 @@ public class CharacterBehaviour : MonoBehaviour
 		{
 			_velocity.z = Mathf.Round(_velocity.z);
 		}
-
-		//_velocity.z = Mathf.Round(_velocity.z);
-/*
-	
-		if (Mathf.Approximately(_velocity.x, 0f))
-		{
-			_velocity.x = 0;
-		}
-		else
-		{
-			_velocity.x += _frictionForce.x * Time.deltaTime;
-		}
-		
-		if (Mathf.Approximately(_velocity.z, 0f))
-		{
-			_velocity.z = 0;
-		}
-		else
-		{
-			_velocity.z += _frictionForce.z * Time.deltaTime;
-		}
-		*/
-
-
-		/*if (_velocity.x > 0)
-		{
-			_velocity.x-=0.1f;
-		}
-		else if(_velocity.x < 0)
-		{
-			_velocity.x+=0.1f;
-		}
-		
-		if (_velocity.z > 0)
-		{
-			_velocity.z-=0.1f;
-		}
-		else if(_velocity.z < 0)
-		{
-			_velocity.z+=0.1f;
-		} 
 		*/
 	}
 
-	private void ClampVelocity()
+	// Makes sure the X & Z velocities don't exceed the maximum speed
+	private void ClampXZVelocity()
 	{
+		float preservedYVelocity = _velocity.y;
+		
 		Vector3 clampedVelocity = new Vector3(_velocity.x, _velocity.y, _velocity.z);
 		clampedVelocity = Vector3.Scale(clampedVelocity, new Vector3(1, 0, 1));
 
@@ -225,22 +191,16 @@ public class CharacterBehaviour : MonoBehaviour
 		clampedVelocity *= magnitude;
 
 		_velocity = Vector3.ClampMagnitude(clampedVelocity, _maximumSpeed);
-		/*
-		//clamp the velocity x, y, z
-		float xVelocityClamped = Mathf.Clamp(_velocity.x, -_maximumSpeed, _maximumSpeed);
-		float yVelocityClamped = Mathf.Clamp(_velocity.y, - _maximumSpeed, _maximumSpeed);
-		float zVelocityClamped = Mathf.Clamp(_velocity.z, -_maximumSpeed, _maximumSpeed);
-		
-		//apply clamped x, y, z to the velocity
-		_velocity = new Vector3(xVelocityClamped, yVelocityClamped, zVelocityClamped);
-		*/
+		_velocity.y = preservedYVelocity;
 	}
 
+	// Move the character based on the velocity
 	private void PerformMovement()
 	{
 		_characterController.Move(_velocity * Time.fixedDeltaTime);
 	}
 
+	// Applies gravity to the velocity
 	private void ApplyGravity()
 	{
 		// v = u + at
