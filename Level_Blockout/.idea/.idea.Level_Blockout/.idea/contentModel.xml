@@ -162,6 +162,7 @@
           </e>
         </e>
         <e p="Scripts" t="Include">
+          <e p="AnimationControllerBehaviour.cs" t="Include" />
           <e p="CameraBehaviour.cs" t="Include" />
           <e p="CharacterBehaviour.cs" t="Include" />
           <e p="GroundBehaviour.cs" t="Include" />

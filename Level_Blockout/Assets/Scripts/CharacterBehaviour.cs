@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 // This script moves the character based on which direction the camera is facing
 
@@ -10,98 +11,134 @@ using UnityEngine;
 // v = u + at
 // Final velocity = initial velocity * acceleration * time
 
+[RequireComponent(typeof(CharacterController))]
 public class CharacterBehaviour : MonoBehaviour
 {
+	// Locomotion parameters
+	[Header("Locomotion Parameters")]
+	[SerializeField] private float _acceleration; // Acceleration measured in meters/second² [m/s²]
+	[SerializeField] private float _mass; // Mass measured in kilograms [kg]
+	[SerializeField] private float _rotationSpeed;
+	
 	// InputController
-	private GameObject _inputControllerGameObject;
-	[SerializeField] private InputController _inputControllerScript;
+	[SerializeField] private InputController _inputControllerBehaviour;
+
+	// CharacterController
+	[SerializeField] private CharacterController _characterControllerComponent;
+	
+	// Model, to apply independent rotation
+	[SerializeField] private GameObject _characterModel;
+	
+	// Camera
+	[SerializeField] private Transform _mainCameraTransform;
 	
 	// Surface character is walking on
-	private GameObject _groundGameObject;
-	[SerializeField] private GroundBehaviour _groundBehaviourScript;
+	[SerializeField] private GroundBehaviour _groundBehaviour;
 	
 	// Controls used in this script
 	private float _inputMoveCharacterZAxis;
 	private float _inputMoveCharacterXAxis;
+
+	private float _decelerationTimer = 0;
+	private float _decelerationPreviousMagnitude = 0;
 	
-	// Locomotion parameters
-	[SerializeField] private float _acceleration = 20; // Acceleration measured in meters/second² [m/s²]
-	[SerializeField] private float _mass = 75; // Mass measured in kilograms [kg]
-	[SerializeField] private float _maximumSpeed = 5; // Speed measured in meters/second [m/s]
-	[SerializeField] private Vector3 _velocity;
+	public float TotalMaximumSpeed { get; set; } = 5f; // Speed measured in meters/second [m/s]
+	private float _currentMaximumSpeed;
 	
-	// CharacterController
-	private CharacterController _characterController;
-	
-	// Manipulated transforms
-	private GameObject _mainCameraGameObject;
-	[SerializeField]private Transform _mainCameraTransform;
-	
-	private void Awake()
+	private Vector3 _velocity;
+	public Vector3 Velocity
 	{
-		// Initialize _inputControllerGameObject & _inputControllerScript
-		_inputControllerGameObject = GameObject.FindWithTag("InputController");
-		if (_inputControllerGameObject != null)
+		get
 		{
-			_inputControllerScript = _inputControllerGameObject.GetComponent<InputController>();
+			return _velocity;
 		}
-		else
+		set
 		{
-			Debug.LogError("_inputControllerGameObject could not be found by CharacterBehaviour");
-		}
-		
-		// Initialize _groundGameObject & _groundBehaviourScript
-		_groundGameObject = GameObject.FindWithTag("Ground");
-		if (_groundGameObject != null)
-		{
-			_groundBehaviourScript = _groundGameObject.GetComponent<GroundBehaviour>();
-		}
-		else
-		{
-			Debug.LogError("_groundBehaviourGameObject could not be found by CharacterBehaviour");
-		}
-		
-		// Initialize charactercontroller
-		_characterController = this.gameObject.GetComponent<CharacterController>();
-		if (_characterController == null)
-		{
-			Debug.LogError("_characterController could not be found by CharacterBehaviour");
-		}
-		
-		// Initialize _mainCameraTransform
-		_mainCameraTransform = GameObject.FindWithTag("MainCamera").transform;
-		if (_mainCameraTransform == null)
-		{
-			Debug.LogError("_mainCameraTransform could not be found by CharacterBehaviour");
+			_velocity = value;
 		}
 	}
-	
+
+	private float _idleTimer;
+	public float IdleTimer
+	{
+		get
+		{
+			return _idleTimer;
+		}
+		set
+		{
+			_idleTimer = value;
+		}
+	}
+
+	private void Awake()
+	{
+		// Initialize locomotion parameters
+		_acceleration = 5f;
+		_mass = 75;
+		_rotationSpeed = 20f;
+		
+		// Initialize _charactercontroller
+		_characterControllerComponent = GetComponent<CharacterController>();
+		
+		// Initialize _mainCameraTransform
+		_mainCameraTransform = Camera.main.transform;
+	}
+
+	private void Start()
+	{
+		
+#if DEBUG
+{
+	Assert.IsNotNull(_characterControllerComponent, "You need to assign a character controller component to CharacterBehaviour");
+	Assert.IsNotNull(_inputControllerBehaviour, "You need to assign an input controller behaviour to CharacterBehaviour");
+	Assert.IsNotNull(_characterModel, "You need to assign a character model to CharacterBehaviour");
+	Assert.IsNotNull(_mainCameraTransform, "You need to assign the main camera to CharacterBehaviour");
+	Assert.IsNotNull(_groundBehaviour, "You need to assign a ground behaviour to CharacterBehaviour");
+}
+#endif
+		
+	}
+
 	// Update is called once per frame
 	private void Update ()
 	{
 		MapInputs();
+		RotateCharacter();
+		UpdateIdleTimer();
 	}
 
 	private void FixedUpdate()
 	{
 		ApplyGround();
-		ApplyMovement();
-		ApplyXZFriction();
-		ClampXZVelocity();
+		
+		
+		if (IsDecelerating())
+		{
+			
+			ApplyXZFriction();
+		}
+		else
+		{
+			ApplyMovement();
+			ClampXZVelocity();
+		}
+		
 		ApplyGravity();
 		PerformMovement();
 	}
+	
 	// Map inputs used in this script
 	private void MapInputs()
 	{
-		_inputMoveCharacterZAxis = _inputControllerScript.LeftJoyStickVertical;
-		_inputMoveCharacterXAxis = _inputControllerScript.LeftJoyStickHorizontal;
+		_inputMoveCharacterZAxis = _inputControllerBehaviour.LeftJoyStickVertical;
+		_inputMoveCharacterXAxis = _inputControllerBehaviour.LeftJoyStickHorizontal;
 	}
 	
 	// Prevents gravity from applying acceleration when grounded
 	private void ApplyGround()
 	{
-		if (_characterController.isGrounded)
+		if (_characterControllerComponent.isGrounded)
 		{
 			_velocity -= Vector3.Project(_velocity, Physics.gravity.normalized);
 		}
@@ -124,7 +161,10 @@ public class CharacterBehaviour : MonoBehaviour
 		
 		// v = u + at
 		// endVelocity = startVelocity + acceleration * time
+
 		_velocity += movementForward * _acceleration * Time.fixedDeltaTime;
+		
+		//_velocity = movementForward * MaximumSpeed;
 	}
 
 	// Calculate the friction force, based on the surface friction coefficient
@@ -154,15 +194,11 @@ public class CharacterBehaviour : MonoBehaviour
 		float preservedYVelocity = _velocity.y;
 		
 		// Only apply friction when the character movement controllers are untouched
-		if (_inputMoveCharacterXAxis == 0 && _inputMoveCharacterZAxis == 0)
-		{
-			_velocity += GetFrictionForceVector(_groundBehaviourScript.SurfaceFrictionCoefficient) * Time.fixedDeltaTime;
-			_velocity.y = preservedYVelocity;
-		}
+		//if (Mathf.Approximately(_inputMoveCharacterXAxis, 0) && Mathf.Approximately(_inputMoveCharacterZAxis, 0))
+		_velocity += GetFrictionForceVector(_groundBehaviour.SurfaceFrictionCoefficient) * Time.fixedDeltaTime;
+		_velocity.y = preservedYVelocity;
 		
 		//if input is close to 0
-
-		/*
 		float smallestVelocityAllowed = 0.2f;		
 		if (_velocity.x < smallestVelocityAllowed && _velocity.x > -smallestVelocityAllowed)
 		{
@@ -173,13 +209,16 @@ public class CharacterBehaviour : MonoBehaviour
 		{
 			_velocity.z = Mathf.Round(_velocity.z);
 		}
-		*/
+		
 	}
 
-	// Makes sure the X & Z velocities don't exceed the maximum speed
+	// Makes sure the X & Z velocities don't exceed the current maximum speed
 	private void ClampXZVelocity()
 	{
 		float preservedYVelocity = _velocity.y;
+
+		float inputMagnitude = Mathf.Clamp01(new Vector2(_inputMoveCharacterXAxis, _inputMoveCharacterZAxis).magnitude);
+		_currentMaximumSpeed = inputMagnitude * TotalMaximumSpeed;
 		
 		Vector3 clampedVelocity = new Vector3(_velocity.x, _velocity.y, _velocity.z);
 		clampedVelocity = Vector3.Scale(clampedVelocity, new Vector3(1, 0, 1));
@@ -190,14 +229,14 @@ public class CharacterBehaviour : MonoBehaviour
 
 		clampedVelocity *= magnitude;
 
-		_velocity = Vector3.ClampMagnitude(clampedVelocity, _maximumSpeed);
+		_velocity = Vector3.ClampMagnitude(clampedVelocity, _currentMaximumSpeed);
 		_velocity.y = preservedYVelocity;
 	}
 
 	// Move the character based on the velocity
 	private void PerformMovement()
 	{
-		_characterController.Move(_velocity * Time.fixedDeltaTime);
+		_characterControllerComponent.Move(_velocity * Time.fixedDeltaTime);
 	}
 
 	// Applies gravity to the velocity
@@ -206,5 +245,65 @@ public class CharacterBehaviour : MonoBehaviour
 		// v = u + at
 		// endVelocity = startVelocity + acceleration(gravity) * time
 		_velocity += Physics.gravity * Time.fixedDeltaTime;
+	}
+
+	// Rotates the character so it faces the direction it's moving
+	private void RotateCharacter()
+	{
+		if (_velocity.magnitude > 0.2f) // Prevent y rotation from constantly resetting to 0
+		{
+			Quaternion currentRotation = _characterModel.transform.rotation;
+			
+			Quaternion lookRotation = Quaternion.LookRotation(_velocity);
+			lookRotation = Quaternion.Euler(0f, lookRotation.eulerAngles.y, 0f);
+			
+			
+			_characterModel.transform.rotation = Quaternion.Lerp(currentRotation, lookRotation, Time.deltaTime * _rotationSpeed);
+		}
+	}
+	
+	// Start the idle timer if the character is standing still
+	private void UpdateIdleTimer()
+	{
+		if (_inputMoveCharacterXAxis == 0 && _inputMoveCharacterZAxis == 0)
+		{
+			IdleTimer += Time.deltaTime;
+		}
+		else
+		{
+			IdleTimer = 0;
+		}
+	}
+
+	// Check if character is Decelerating
+	private bool IsDecelerating()
+	{
+		bool isDecelerating;
+		float currentMagnitude = Mathf.Clamp01(new Vector2(_inputMoveCharacterXAxis, _inputMoveCharacterZAxis).magnitude);
+		//float currentVelocityMagnitude = _velocity.magnitude;
+		
+		_decelerationTimer += Time.deltaTime;
+
+		if (_decelerationTimer < 0.1f)
+		{
+			//Debug.Log(_timer);
+			_decelerationPreviousMagnitude = currentMagnitude;
+		}
+
+		if (_decelerationTimer > 0.2f)
+		{
+			_decelerationTimer = 0f;
+		}
+
+		if (currentMagnitude < _decelerationPreviousMagnitude || currentMagnitude < 0.2f)
+		{
+			isDecelerating = true;
+		}
+		else
+		{
+			isDecelerating = false;
+		}
+
+		return isDecelerating;
 	}
 }
