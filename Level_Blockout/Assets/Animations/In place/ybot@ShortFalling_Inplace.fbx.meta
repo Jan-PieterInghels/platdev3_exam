@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 581f46c136bad0f479bf3c73b78fbb3b
+guid: 5e1ce36165b57a54a9be505552f9024a
 ModelImporter:
   serializedVersion: 23
   fileIDToRecycleName:
@@ -139,7 +139,7 @@ ModelImporter:
     400130: mixamorig:Spine1
     400132: mixamorig:Spine2
     400134: //RootNode
-    7400000: Walking Left Turn_Inplace
+    7400000: ShortFalling_Inplace
     9500000: //RootNode
   externalObjects: {}
   materials:
@@ -170,10 +170,10 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Walking Left Turn_Inplace
+      name: ShortFalling_Inplace
       takeName: mixamo.com
       firstFrame: 0
-      lastFrame: 36
+      lastFrame: 105
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -182,13 +182,13 @@ ModelImporter:
       hasAdditiveReferencePose: 0
       loopTime: 1
       loopBlend: 1
-      loopBlendOrientation: 0
+      loopBlendOrientation: 1
       loopBlendPositionY: 1
       loopBlendPositionXZ: 1
       keepOriginalOrientation: 0
-      keepOriginalPositionY: 1
+      keepOriginalPositionY: 0
       keepOriginalPositionXZ: 0
-      heightFromFeet: 0
+      heightFromFeet: 1
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []

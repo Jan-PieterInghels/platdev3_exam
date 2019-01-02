@@ -162,11 +162,20 @@
           </e>
         </e>
         <e p="Scripts" t="Include">
+          <e p="AirborneStateEnum.cs" t="Include" />
           <e p="AnimationControllerBehaviour.cs" t="Include" />
           <e p="CameraBehaviour.cs" t="Include" />
           <e p="CharacterBehaviour.cs" t="Include" />
           <e p="GroundBehaviour.cs" t="Include" />
           <e p="InputController.cs" t="Include" />
+          <e p="StateMachine" t="Include">
+            <e p="BoxPushingState.cs" t="Include" />
+            <e p="FreeWalkState.cs" t="Include" />
+            <e p="IState.cs" t="Include" />
+            <e p="MonkeyBarState.cs" t="Include" />
+            <e p="RopeSwingingState.cs" t="Include" />
+            <e p="StateMachine.cs" t="Include" />
+          </e>
         </e>
       </e>
       <e p="Level_Blockout.sln" t="IncludeFlat" />

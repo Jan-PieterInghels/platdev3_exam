@@ -10,14 +10,13 @@ public class AnimationControllerBehaviour : MonoBehaviour
 	[SerializeField] private CharacterBehaviour _characterBehaviour;
 	
 	//animator parameter hashes
-	private int _verticalVelocityHash;
-	private int _horizontalVelocityHash;
 	private int _velocityMagnitudeHash;
 	private int _idleTimerHash;
+	private int _airBorneStateHash;
 
-	private float _characterVerticalVelocityMagnitude;
-	private float _characterHorizontalVelocityMagnitude;
 	private float _characterVelocityMagnitude;
+
+	[SerializeField] private StateMachine _stateMachine;
 	
 	private void Awake()
 	{
@@ -45,27 +44,23 @@ public class AnimationControllerBehaviour : MonoBehaviour
 
 	private void UpdateCharacterFields()
 	{
-		_characterVerticalVelocityMagnitude = _characterBehaviour.Velocity.z / _characterBehaviour.TotalMaximumSpeed;
-		_characterHorizontalVelocityMagnitude = _characterBehaviour.Velocity.x / _characterBehaviour.TotalMaximumSpeed;
 		
-		Vector3 characterVelocityXZ = new Vector3(_characterBehaviour.Velocity.x, 0, _characterBehaviour.Velocity.z);
-		_characterVelocityMagnitude = characterVelocityXZ.magnitude / _characterBehaviour.TotalMaximumSpeed;
+		Vector3 characterVelocityXZ = new Vector3(_characterBehaviour.FreeWalkState.Velocity.x, 0, _characterBehaviour.FreeWalkState.Velocity.z);
+		_characterVelocityMagnitude = characterVelocityXZ.magnitude / _characterBehaviour.FreeWalkState.TotalMaximumSpeed;
 	}
 
 	private void UpdateAnimatorParameters()
 	{
-		_characterAnimator.SetFloat(_verticalVelocityHash, _characterVerticalVelocityMagnitude);
-		_characterAnimator.SetFloat(_horizontalVelocityHash, _characterHorizontalVelocityMagnitude);
 		_characterAnimator.SetFloat(_velocityMagnitudeHash, _characterVelocityMagnitude);
-		_characterAnimator.SetFloat(_idleTimerHash, _characterBehaviour.IdleTimer);
+		_characterAnimator.SetFloat(_idleTimerHash, _characterBehaviour.FreeWalkState.IdleTimer);
+		_characterAnimator.SetInteger(_airBorneStateHash, (int)_characterBehaviour.FreeWalkState.AirborneState);
 	}
 
 	private void HashAllParameterNames()
 	{
-		_verticalVelocityHash = HashParameterName("VerticalVelocity");
-		_horizontalVelocityHash = HashParameterName("HorizontalVelocity");
 		_velocityMagnitudeHash = HashParameterName("VelocityMagnitude");
 		_idleTimerHash = HashParameterName("IdleTimer");
+		_airBorneStateHash = HashParameterName("AirborneState");
 	}
 
 	private int HashParameterName(string parameterName)

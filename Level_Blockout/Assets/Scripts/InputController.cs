@@ -6,9 +6,11 @@ using UnityEngine;
 public class InputController : MonoBehaviour
 {
 	// Joysticks
-	public float RightJoyStickHorizontal;
-	public float LeftJoyStickVertical;
-	public float LeftJoyStickHorizontal;
+	public float RightJoyStickHorizontal { get; set; }
+	public float LeftJoyStickVertical { get; set; }
+	public float LeftJoyStickHorizontal { get; set; }
+	public bool JumpButton { get; set; }
+	public bool ForceLandButton { get; set; }
 	
 	// Update is called once per frame
 	private void Update () {
@@ -21,5 +23,7 @@ public class InputController : MonoBehaviour
 		RightJoyStickHorizontal = Input.GetAxis("Right JoyStick Horizontal");
 		LeftJoyStickVertical = Input.GetAxis("Left JoyStick Vertical");
 		LeftJoyStickHorizontal = Input.GetAxis("Left JoyStick Horizontal");
+		JumpButton = Input.GetButton("Jump");
+		ForceLandButton = Input.GetButton("Land");
 	}
 }

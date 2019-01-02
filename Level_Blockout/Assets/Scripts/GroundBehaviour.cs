@@ -23,6 +23,6 @@ public class GroundBehaviour : MonoBehaviour
 	private void Awake()
 	{
 		//set surface friction coefficient
-		SurfaceFrictionCoefficient = 0.2f;
+		SurfaceFrictionCoefficient = 0.3f;
 	}
 }
